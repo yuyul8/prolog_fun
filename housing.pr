@@ -1,0 +1,130 @@
+% Dorm Selection in Prolog
+% Authors: Yuyu Li and Ana Balcells
+% CS 251 - Spring 2015
+
+:- use_module(library(clpfd)).
+:- use_module(library(aggregate)).	
+
+% Facts to create students 
+% student(idNumber)
+student(1). student(2). student(3). student(4). student(5).
+student(6). student(7). student(8). student(9). student(10).
+student(11). student(12). student(13). student(14). student(15).
+student(16). student(17). student(18). student(19). student(20).
+
+% Creates range for upperclassmen and underclassmen
+% bounds(year, start #, end #)
+bounds(upperclassm,1,10).
+bounds(underclassm,11,20).
+
+% Roommate pairs (2 facts needed for each roommate pair)
+roommates(11,16). roommates(16,11).
+roommates(12,13). roommates(13,12).
+roommates(14,17). roommates(17,14).
+roommates(15,20). roommates(20,15).
+roommates(18,19). roommates(19,18).
+% Roommate pairs which are only in one direction; will not be roomed together
+roommates(17,15). 
+roommates(12,19).
+
+% Rule to determine whether a given roommate pair is compatible.
+% Requires both roommates to have requested one another. They must also have one dorm preference in common.
+% compatible(Student1, Student2)
+compatible(A,B):-
+	roommates(A,B), roommates(B,A),
+	pref(A,X), pref(B,X).
+
+% Dorm preferences. Each student has 3 prefs, ie 3 dorms they would like to live in.
+% pref(idNumber, dorm)
+pref(1,stoneD). pref(1,shafer). pref(1,beebe).
+pref(2,tower). pref(2,bates). pref(2,freeman).
+pref(3,mcAfee). pref(3,stoneD). pref(3,munger).
+pref(4,bates). pref(4,stoneD). pref(4,pom).
+pref(5,pom). pref(5,munger). pref(5,caz).
+pref(6,beebe). pref(6,stoneD). pref(6,tower).
+pref(7,freeman). pref(7,pom). pref(7,caz).
+pref(8,caz). pref(8,shafer). pref(8,beebe).
+pref(9,shafer). pref(9,pom). pref(9,caz).
+pref(10,munger). pref(10,pom). pref(10,bates).
+pref(11,caz). pref(11,beebe). pref(11,munger).
+pref(12,freeman). pref(12,bates). pref(12,mcAfee).
+pref(13,stoneD). pref(13,munger). pref(13,freeman).
+pref(14,tower). pref(14,stoneD). pref(14,bates).
+pref(15,stoneD). pref(15,pom). pref(15,mcAfee).
+pref(16,munger). pref(16,beebe). pref(16,shafer).
+pref(17,stoneD). pref(17,tower). pref(17,shafer).
+pref(18,bates). pref(18,caz). pref(18,pom).
+pref(19,bates). pref(19,mcAfee). pref(19,freeman).
+pref(20,mcAfee). pref(20,stoneD). pref(20,caz).
+
+% Attempt to prioritize certain preferences over others
+/* prioritize(A,X,Y):-
+	pref(A,X,Y);
+	pref(A,X,Z),
+	prioritize(A,Z,Y). */   
+
+% Solves the dorm assignments for all singles
+solveSingle([McAfee,Freeman,Bates,StoneD,Munger,Tower,Shafer, 
+       Beebe,Caz,Pom]):-
+
+       bounds(upperclassm,Low,High), % checking bounds of those placed in singles
+
+       pref(McAfee,mcAfee), %assign students to their room
+       pref(Freeman,freeman),
+       pref(Bates,bates),
+       pref(StoneD,stoneD),
+       pref(Munger,munger),
+       pref(Tower,tower),
+       pref(Shafer,shafer),
+       pref(Beebe,beebe),
+       pref(Caz,caz),
+       pref(Pom,pom), 
+
+       greatereq([McAfee,Freeman,Bates,StoneD,Munger,Tower,Shafer, % checks that students #s are > 1
+       	   Beebe,Caz,Pom],Low),
+
+       lesseq([McAfee,Freeman,Bates,StoneD,Munger,Tower,Shafer, % checks that students #s are < 10
+           Beebe,Caz,Pom],High),
+
+       all_different([McAfee,Freeman,Bates,StoneD,Munger,Tower,Shafer, % checks that all assignments are distinct
+       Beebe,Caz,Pom]).
+
+
+% Solves the dorm assignments for all doubles
+solveDouble([McAfee1,McAfee2,Freeman1,Freeman2,Bates1,Bates2,
+	    StoneD1,StoneD2,Munger1,Munger2]):-
+	
+	bounds(underclassm,Low,High), % checking bounds of those placed in doubles
+
+	pref(McAfee1,mcAfee), pref(McAfee2,mcAfee), 
+	compatible(McAfee1,McAfee2),
+	pref(Freeman1,freeman), pref(Freeman2,freeman),
+	compatible(Freeman1,Freeman2),
+	pref(Bates1,bates), pref(Bates2,bates),
+	compatible(Bates1,Bates2),
+	pref(StoneD1,stoneD), pref(StoneD2, stoneD),
+	compatible(StoneD1,StoneD2),
+	pref(Munger1,munger), pref(Munger2,munger),
+	compatible(Munger1,Munger2),
+
+	greatereq([McAfee1,McAfee2,Freeman1,Freeman2,Bates1,Bates2, % checks that students #s are > 10
+	    StoneD1,StoneD2,Munger1,Munger2],Low),
+
+ 	lesseq([McAfee1,McAfee2,Freeman1,Freeman2,Bates1,Bates2, % checks that students #s are < 20
+	    StoneD1,StoneD2,Munger1,Munger2],High).
+
+	
+solve(List1,List2) :- 
+	solveSingle(List1), solveDouble(List2),
+	write('Dorm room results by lottery number:'), nl, write('----------------------------'),nl.
+
+%The following rules are used to determine that the correct students are being placed into singles vs doubles
+greatereq([H|T],Y):-
+	H >= Y,
+	greatereq(T,Y).
+greatereq([],_).
+
+lesseq([H|T],Y):-
+	H =< Y,
+	lesseq(T,Y).
+lesseq([],_).
